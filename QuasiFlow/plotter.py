@@ -23,7 +23,7 @@ def mirroredpair(rc,rt,length,n):
    for x in iteratedata(rc,rt,length,n)[0]:
        
 
-   return a
+    return a
 
 def plotter(rc,rt,length,n):
     _,zloc = iteratedata(rc,rt,length,n)
