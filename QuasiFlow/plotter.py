@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.widgets import Slider
 import math 
 
 
@@ -8,50 +9,159 @@ import math
 Initialize plot with 2d nozzle specifications
 
 """
-def divergingradius(rt,re,length, z):
-    return rt-(re-rt)*(z/length)**2
 
+"""
+Physical CSTS
+"""
+
+gamma = 1.4
+
+def divergingradius(rt, re, length, z):
+    s = z / length
+    return rt + (re - rt) * (2*s - s**2)
 
 def iteratedata(rt,re,length,n):
-    lst = []
+    radii = []
     zloc = np.linspace(0,length,n,endpoint=True)
     for zpoints in np.linspace(0, length, n, endpoint = True):
-        lst.append(divergingradius(rt,re,length,zpoints))
+        radii.append(divergingradius(rt,re,length,zpoints))
     
-    return lst,zloc
+    return zloc,radii
+
+
+
 
 def getarearatio(rt,re,length,n):
-    radius_list, zloc = iteratedata(rt, re, length, n)
+    zloc,radii = iteratedata(rt, re, length, n)
     
-    # Compute area at each point
-    area_list = [math.pi * r**2 for r in radius_list]
+    area_list = [math.pi * r**2 for r in radii]
     
-    # Throat area (minimum area)
+    # Throat area
     throat_area = min(area_list)
     
-    # Compute area ratio A/A*
+    # Compute area ratio 
     area_ratios = [A / throat_area for A in area_list]
     
     return area_ratios, zloc
+
+
+
+
+def numericallysolvemach(rt, re, length, n, tol=1e-6, max_iter=100):
+    area_ratios, zloc = getarearatio(rt, re, length, n)
+    M_list = []
+
+    for R in area_ratios:
+        if abs(R - 1.0) < 1e-6:
+            M_list.append(1.0)
+            continue
+
+        def F(M):
+            return (1.0 / M) * (
+                (2.0 / (gamma + 1.0)) * (1.0 + (gamma - 1.0) / 2.0 * M**2)
+            ) ** ((gamma + 1.0) / (2.0 * (gamma - 1.0))) - R
+
+        a, b = 1.01, 400
+        fa, fb = F(a), F(b)
+
+        for _ in range(max_iter):
+            c = 0.5 * (a + b)
+            fc = F(c)
+
+            if abs(fc) < tol:
+                break
+
+            if fa * fc < 0:
+                b, fb = c, fc
+            else:
+                a, fa = c, fc
+
+        M_list.append(c)
+
+    return M_list, zloc
+
+def getpressureprofile(rt, re, length, n, P0 = 100, tol=1e-6, max_iter=100):
+    """
+    Computes static pressure along the nozzle using Mach number and isentropic relations.
+    
+    """
+
+    M_list, zloc = numericallysolvemach(rt, re, length, n, tol, max_iter)
+
+    pressures = []
+    for M in M_list:
+        # Isentropic relation for static pressure
+        pressure_ratio = (1 + (gamma - 1) / 2 * M**2) ** (-gamma / (gamma - 1))
+        P = P0 * pressure_ratio
+        pressures.append(P)
+
+    return zloc, pressures
 
 
 def area_mach_relation(M, area_ratio, gamma=1.4):
     """Area-Mach equation residual."""
     return (1/M) * ((2/(gamma+1))*(1 + (gamma-1)/2 * M**2))**((gamma+1)/(2*(gamma-1))) - area_ratio
 
-def plotter(rt,re,length,n):
-    _,zloc = iteratedata(rt,re,length,n)
-    lst,_ = iteratedata(rt,re,length,n)
-    plt.plot(lst,zloc, color = 'blue')
-    plt.plot(lst,-1*zloc, color = 'blue')
-    plt.title("Diverging Nozzle Section")
+def plotter_with_sliders(rt_init, re_init, length, n, P0_init):
+
+    zloc, radii = iteratedata(rt_init, re_init, length, n)
+    radii = np.array(radii)
+    zloc_p, pressures = getpressureprofile(rt_init, re_init, length, n,
+                                           P0=P0_init, tol=1e-6, max_iter=100)
+
+    fig, axs = plt.subplots(1, 2, figsize=(12, 5))
+    plt.subplots_adjust(bottom=0.25)  
+
+    # nozzle shape 
+    line_top, = axs[0].plot(zloc, radii, color='blue')
+    line_bot, = axs[0].plot(zloc, -radii, color='blue')
+    axs[0].set_title("Diverging Nozzle Shape")
+    axs[0].set_xlabel("Axial Position z (m)")
+    axs[0].set_ylabel("Radius r (m)")
+
+    # pressure
+    line_P, = axs[1].plot(zloc_p, pressures, color='red')
+    axs[1].set_title("Static Pressure Along Nozzle")
+    axs[1].set_xlabel("Axial Position z (m)")
+    axs[1].set_ylabel("Pressure P (Pa)")
+
+    #slider axes
+    ax_re  = fig.add_axes([0.25, 0.12, 0.5, 0.03])
+    ax_P0  = fig.add_axes([0.25, 0.06, 0.5, 0.03])
+
+    slider_re = Slider(ax_re, "re",  rt_init*1.2, re_init*3, valinit=re_init)
+    slider_P0 = Slider(ax_P0, "P0",  10, 5*P0_init, valinit=P0_init)
+
+    def update(val):
+        re = slider_re.val
+        P0 = slider_P0.val
+
+        zloc, radii = iteratedata(rt_init, re, length, n)
+        radii = np.array(radii)
+        _, pressures = getpressureprofile(rt_init, re, length, n,
+                                          P0=P0, tol=1e-6, max_iter=100)
+
+        # update nozzle 
+        line_top.set_xdata(zloc)
+        line_top.set_ydata(radii)
+        line_bot.set_xdata(zloc)
+        line_bot.set_ydata(-radii)
+
+        # update pressure 
+        line_P.set_xdata(zloc)
+        line_P.set_ydata(pressures)
+
+        # rescale axes
+        for ax in axs:
+            ax.relim()
+            ax.autoscale_view()
+
+        fig.canvas.draw_idle()
+
+    slider_re.on_changed(update)
+    slider_P0.on_changed(update)
+
     plt.show()
 
-###  TO DO:
-"""
-We have nozzle envelope and area ratio. next steps are to numerically
-solve area mach rlation for mach to get mach number at area ratio, and then
-use the mach number we get to solve for pressure at given x value
-"""
 
-plotter(5,1,2,50)
+plotter_with_sliders(rt_init=1.0, re_init=4.0, length=2.0, n=50, P0_init=100000)
