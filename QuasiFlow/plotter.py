@@ -102,7 +102,7 @@ def area_mach_relation(M, area_ratio, gamma=1.4):
     """Area-Mach equation residual."""
     return (1/M) * ((2/(gamma+1))*(1 + (gamma-1)/2 * M**2))**((gamma+1)/(2*(gamma-1))) - area_ratio
 
-def plotter_with_sliders(rt_init, re_init, length, n, P0_init):
+def plotter(rt_init, re_init, length, n, P0_init):
 
     zloc, radii = iteratedata(rt_init, re_init, length, n)
     radii = np.array(radii)
@@ -164,4 +164,4 @@ def plotter_with_sliders(rt_init, re_init, length, n, P0_init):
     plt.show()
 
 
-plotter_with_sliders(rt_init=1.0, re_init=4.0, length=2.0, n=50, P0_init=100000)
+plotter(rt_init=1.0, re_init=4.0, length=2.0, n=50, P0_init=100000)
