@@ -14,11 +14,20 @@ U = np.ones_like(X)*U_unif
 V = np.zeros_like(Y)
 
 
-def listairfoils(folder):
+
+def listairfoils(folder:str):
     files = sorted(os.listdir(folder))
     newfile = []
     for i, file in enumerate(files):
         newfile.append((i,file))
+    return newfile
+
+def menu(folder:str):
+    tuples = listairfoils(folder)
+    for i,e in tuples:
+        print(F"{i} {e}")
+
+
 
 
     
