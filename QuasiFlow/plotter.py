@@ -30,11 +30,12 @@ def iteratedata(rt,re,length,n):
 
 
 
-
 def getarearatio(rt,re,length,n):
     zloc,radii = iteratedata(rt, re, length, n)
     
     area_list = [math.pi * r**2 for r in radii]
+
+    
     
     # Throat area
     throat_area = min(area_list)
@@ -46,45 +47,23 @@ def getarearatio(rt,re,length,n):
 
 
 
-
 def numericallysolvemach(rt, re, length, n, tol=1e-6, max_iter=100):
+    """
+    Given area ratios, z location in nozzle, determine mach number corresponding
+
+    """
+
+    
     area_ratios, zloc = getarearatio(rt, re, length, n)
     M_list = []
 
-    for R in area_ratios:
-        if abs(R - 1.0) < 1e-6:
-            M_list.append(1.0)
-            continue
-
-        def F(M):
-            return (1.0 / M) * (
-                (2.0 / (gamma + 1.0)) * (1.0 + (gamma - 1.0) / 2.0 * M**2)
-            ) ** ((gamma + 1.0) / (2.0 * (gamma - 1.0))) - R
-
-        a, b = 1.01, 400
-        fa, fb = F(a), F(b)
-
-        for _ in range(max_iter):
-            c = 0.5 * (a + b)
-            fc = F(c)
-
-            if abs(fc) < tol:
-                break
-
-            if fa * fc < 0:
-                b, fb = c, fc
-            else:
-                a, fa = c, fc
-
-        M_list.append(c)
-
-    return M_list, zloc
-
+    
 def getpressureprofile(rt, re, length, n, P0 = 100, tol=1e-6, max_iter=100):
     """
     Computes static pressure along the nozzle using Mach number and isentropic relations.
     
     """
+    
 
     M_list, zloc = numericallysolvemach(rt, re, length, n, tol, max_iter)
 
@@ -94,12 +73,12 @@ def getpressureprofile(rt, re, length, n, P0 = 100, tol=1e-6, max_iter=100):
         pressure_ratio = (1 + (gamma - 1) / 2 * M**2) ** (-gamma / (gamma - 1))
         P = P0 * pressure_ratio
         pressures.append(P)
+        
 
     return zloc, pressures
 
 
 def area_mach_relation(M, area_ratio, gamma=1.4):
-    """Area-Mach equation residual."""
     return (1/M) * ((2/(gamma+1))*(1 + (gamma-1)/2 * M**2))**((gamma+1)/(2*(gamma-1))) - area_ratio
 
 def plotter(rt_init, re_init, length, n, P0_init):
@@ -129,8 +108,8 @@ def plotter(rt_init, re_init, length, n, P0_init):
     ax_re  = fig.add_axes([0.25, 0.12, 0.5, 0.03])
     ax_P0  = fig.add_axes([0.25, 0.06, 0.5, 0.03])
 
-    slider_re = Slider(ax_re, "re",  rt_init*1.2, re_init*3, valinit=re_init)
-    slider_P0 = Slider(ax_P0, "P0",  10, 5*P0_init, valinit=P0_init)
+    slider_re = Slider(ax_re, "Expansion Ratio Ae/A*",  rt_init*1.2, re_init*3, valinit=re_init)
+    slider_P0 = Slider(ax_P0, "Stagnation Pressure P0",  10, 5*P0_init, valinit=P0_init)
 
     def update(val):
         re = slider_re.val
@@ -140,7 +119,7 @@ def plotter(rt_init, re_init, length, n, P0_init):
         radii = np.array(radii)
         _, pressures = getpressureprofile(rt_init, re, length, n,
                                           P0=P0, tol=1e-6, max_iter=100)
-
+        print(pressures)
         # update nozzle 
         line_top.set_xdata(zloc)
         line_top.set_ydata(radii)
