@@ -15,31 +15,6 @@ V = np.zeros_like(Y)
 
 
 
-def listairfoils(folder:str):
-    files = sorted(os.listdir(folder))
-    newfile = []
-    for i, file in enumerate(files):
-        newfile.append((i,file))
-    return newfile
-
-
-def menu(folder:str):
-    tuples = listairfoils(folder)
-    for i,e in tuples:
-        print(F"{i} {e}")
-
-
-
-
-
-    
-
-def definepointsnaca(path):
-    data = np.loadtxt(path, skiprows=1)
-    x=data[:, 0]
-    y = data[:, 1]
-    return x,y
-
 
 
 plt.streamplot(X, Y, U, V)
