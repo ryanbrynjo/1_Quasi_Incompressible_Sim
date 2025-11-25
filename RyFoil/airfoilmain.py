@@ -1,17 +1,42 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
+
+
+print("Welcome to Ry-Foil, an Airfoil Solver and Analyzer")
+print("---------------------------------------------------")
+print("Select an airfoil (1-105)")
+print("---------------------------------------------------")
 
 
 
-X, Y = np.meshgrid(np.linspace(-2, 2, 20), np.linspace(-2, 2, 20))
+def listairfoils(folder:str):
+    files = sorted(os.listdir(folder))
+    newfile = []
+    for i, file in enumerate(files):
+        newfile.append((i,file))
+    return newfile
 
-U_unif = 10
-U = np.ones_like(X)*U_unif
-V = np.zeros_like(Y)
 
-plt.streamplot(X, Y, U, V)
-plt.xlabel('X-axis')
-plt.ylabel('Y-axis')
-plt.title('Streamplot of a Vortex')
+def menu(folder:str):
+    tuples = listairfoils(folder)
+    for i,e in tuples:
+        print(F"{i} {e}")
 
-plt.show()
+def coordinates(folder:str):
+    number = input()
+    tuples = listairfoils(folder)
+    _,a = tuples[int(number)]
+    coords = np.loadtxt(F"assets\\coordinates\\{a}", skiprows = 1)
+    x = coords[:,0]
+    y = coords[:,1]
+    print(x,y)
+
+    return x,y,coords
+
+
+menu("assets\\coordinates")
+coordinates("assets\\coordinates")
+
+
+

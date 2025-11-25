@@ -22,10 +22,12 @@ def listairfoils(folder:str):
         newfile.append((i,file))
     return newfile
 
+
 def menu(folder:str):
     tuples = listairfoils(folder)
     for i,e in tuples:
         print(F"{i} {e}")
+
 
 
 
